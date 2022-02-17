@@ -31,9 +31,47 @@ pub struct Track {
     pub url: String,
     pub added_at: Option<DateTime<Utc>>,
     pub list_index: usize,
+    pub popularity: u32,
 }
 
 impl Track {
+    pub fn from_full_track(track: &FullTrack, album: &FullAlbum) -> Track {
+        let artists = track
+            .artists
+            .iter()
+            .map(|artist| artist.name.clone())
+            .collect::<Vec<String>>();
+        let artist_ids = track
+            .artists
+            .iter()
+            .filter_map(|a| a.id.as_ref().map(|id| id.id().to_string()))
+            .collect::<Vec<String>>();
+        let album_artists = album
+            .artists
+            .iter()
+            .map(|artist| artist.name.clone())
+            .collect::<Vec<String>>();
+
+        Self {
+            id: track.id.as_ref().map(|id| id.id().to_string()),
+            uri: track.id.as_ref().map(|id| id.uri()).unwrap_or_default(),
+            title: track.name.clone(),
+            track_number: track.track_number,
+            disc_number: track.disc_number,
+            duration: track.duration.as_millis() as u32,
+            artists,
+            artist_ids,
+            album: Some(album.name.clone()),
+            album_id: Some(album.id.id().to_string()),
+            album_artists,
+            cover_url: album.images.get(0).map(|img| img.url.clone()),
+            url: track.id.as_ref().map(|id| id.url()).unwrap_or_default(),
+            added_at: None,
+            list_index: 0,
+            popularity: track.popularity
+        }
+    }
+
     pub fn from_simplified_track(track: &SimplifiedTrack, album: &FullAlbum) -> Track {
         let artists = track
             .artists
@@ -67,6 +105,7 @@ impl Track {
             url: track.id.as_ref().map(|id| id.url()).unwrap_or_default(),
             added_at: None,
             list_index: 0,
+            popularity: 0,
         }
     }
 
@@ -106,6 +145,7 @@ impl From<&SimplifiedTrack> for Track {
             url: track.id.as_ref().map(|id| id.url()).unwrap_or_default(),
             added_at: None,
             list_index: 0,
+            popularity: 0,
         }
     }
 }
@@ -145,6 +185,7 @@ impl From<&FullTrack> for Track {
             url: track.id.as_ref().map(|id| id.url()).unwrap_or_default(),
             added_at: None,
             list_index: 0,
+            popularity: track.popularity,
         }
     }
 }

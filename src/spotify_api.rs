@@ -621,10 +621,53 @@ impl WebApi {
     }
 
     pub fn artist_top_tracks(&self, id: &str) -> Option<Vec<Track>> {
+        let albums: Vec<Album> = (self.artist_albums(id, Some(AlbumType::Album)) as ApiResult<Album>).items.read().unwrap().clone();
+
+        let mut all_tracks: Vec<Track> = Vec::new();
+
+        for album in albums {
+            let album_id: String = album.id.unwrap();
+            let full_album = self.album(&album_id).unwrap();
+
+            let track_ids: Vec<String> = full_album.tracks.items
+                .iter()
+                .map(|track| {
+                    track.id
+                        .as_ref()
+                        .unwrap()
+                        .id()
+                        .to_string()
+                })
+                .collect();
+            let full_tracks: Vec<FullTrack> = self.track_by_ids(&track_ids).unwrap();
+
+            let mapped_tracks: Vec<Track> = full_tracks.iter()
+                .map(|track| {
+                    Track::from_full_track(track, &full_album)
+                }).collect();
+            for track in mapped_tracks {
+                all_tracks.push(track);
+            }
+
+            all_tracks.sort_by(|a, b| { b.popularity.partial_cmp(&a.popularity).unwrap() });
+
+        }
+
+        return Some(all_tracks);
+    }
+
+    pub fn track_by_ids(
+        &self,
+        ids: &Vec<String>
+    ) -> Option<Vec<FullTrack>> {
+        let mut coreect_ids: Vec<TrackId> = Vec::new();
+        for id in ids {
+            coreect_ids.push(TrackId::from_id(id).unwrap());
+        }
+
         self.api_with_retry(|api| {
-            api.artist_top_tracks(&ArtistId::from_id(id).unwrap(), &Market::FromToken)
+            api.tracks(&coreect_ids, Some(&Market::FromToken))
         })
-        .map(|ft| ft.iter().map(|t| t.into()).collect())
     }
 
     pub fn artist_related_artists(&self, id: &str) -> Option<Vec<Artist>> {

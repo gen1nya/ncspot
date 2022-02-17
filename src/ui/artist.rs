@@ -79,7 +79,7 @@ impl ArtistView {
 
         tabs.add_tab(
             "top_tracks",
-            "Top 10",
+            "Top by popularity",
             ListView::new(top_tracks, queue.clone(), library.clone()),
         );
 
